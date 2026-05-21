@@ -5,6 +5,8 @@ import (
 	"net"
 )
 
+var active bool
+
 func StartServer() {
 	serv, err := net.Listen("tcp", "0.0.0.0:8090")
 	if err != nil {
@@ -23,6 +25,7 @@ func StartServer() {
 		}
 
 		fmt.Println(conn.RemoteAddr(), "CONNECTED")
+		active = true
 		go handleConnection(conn)
 	}
 }
@@ -44,4 +47,5 @@ func handleConnection(conn net.Conn) {
 	}
 
 	fmt.Println("client disconnected")
+	active = false
 }
