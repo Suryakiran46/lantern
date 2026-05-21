@@ -6,13 +6,14 @@ import (
 )
 
 func StartServer() {
-	serv, err := net.Listen("tcp", "0.0.0.0:8080")
+	serv, err := net.Listen("tcp", "0.0.0.0:8090")
 	if err != nil {
-		panic(err)
+		fmt.Println("Error Starting Server:", err)
+		return
 	}
 	defer serv.Close()
 
-	fmt.Println("Server listening on 8080")
+	fmt.Println("Server listening on 8090")
 
 	for {
 		conn, err := serv.Accept()
@@ -21,6 +22,7 @@ func StartServer() {
 			continue
 		}
 
+		fmt.Println(conn.RemoteAddr(), "CONNECTED")
 		go handleConnection(conn)
 	}
 }
