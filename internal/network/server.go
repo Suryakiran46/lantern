@@ -1,7 +1,6 @@
 package network
 
 import (
-	"bufio"
 	"fmt"
 	"net"
 	"sync"
@@ -15,9 +14,10 @@ type Server struct {
 	mu          sync.RWMutex
 	msgChan     chan config.Message
 	peerChan    chan config.PeerEvent
+	port        int
 }
 
-func NewServer() *Server {
+func NewServer(p int) *Server {
 	connections := make(map[string]net.Conn)
 	msg := make(chan config.Message, 100)
 	peer := make(chan config.PeerEvent, 10)
@@ -25,13 +25,14 @@ func NewServer() *Server {
 		connections: connections,
 		msgChan:     msg,
 		peerChan:    peer,
+		port:        p,
 	}
 	return &s
 }
 
-func (s *Server) Listen(port int) error {
-	p := fmt.Sprintf(":%d", port)
-	listener, err := net.Listen("tcp", p)
+func (s *Server) Listen() error {
+	port := fmt.Sprintf(":%d", s.port)
+	listener, err := net.Listen("tcp", port)
 	if err != nil {
 		return err
 	}
@@ -51,7 +52,8 @@ func acceptLoop(s *Server) {
 }
 
 func handleConn(s *Server, conn net.Conn) {
-	ip := conn.RemoteAddr().String()
+	address := conn.RemoteAddr().String()
+	ip, _, _ := net.SplitHostPort(address)
 	s.mu.Lock()
 	s.connections[ip] = conn
 	s.mu.Unlock()
@@ -59,27 +61,26 @@ func handleConn(s *Server, conn net.Conn) {
 		Type: config.PeerConnected,
 		Peer: ip,
 	}
+	go readLoop(s, conn, ip)
+}
 
-	defer func() {
-		s.mu.Lock()
-		delete(s.connections, ip)
-		s.mu.Unlock()
-		s.peerChan <- config.PeerEvent{
-			Type: config.PeerDisconnected,
-			Peer: ip,
-		}
-		conn.Close()
-	}()
-
-	reader := bufio.NewReader(conn)
-	for {
-		msg, err := ReadMessage(reader)
-		if err != nil {
-			return
-		}
-
-		s.msgChan <- msg
+func (s *Server) Send(to string, msg config.Message) error {
+	s.mu.RLock()
+	conn := s.connections[to]
+	s.mu.RUnlock()
+	if conn == nil {
+		return fmt.Errorf("Peer %s not Connected", to)
 	}
+	return WriteMessage(conn, msg)
+}
+
+func (s *Server) Broadcast(msg config.Message) error {
+	s.mu.RLock()
+	for _, conn := range s.connections {
+		WriteMessage(conn, msg)
+	}
+	s.mu.RUnlock()
+	return nil
 }
 
 func (s *Server) MessageChan() <-chan config.Message {
@@ -92,4 +93,9 @@ func (s *Server) PeerChan() <-chan config.PeerEvent {
 
 func (s *Server) Close() {
 	s.listener.Close()
+	s.mu.Lock()
+	for _, conn := range s.connections {
+		conn.Close()
+	}
+	s.mu.Unlock()
 }
