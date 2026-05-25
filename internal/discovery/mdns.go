@@ -166,7 +166,7 @@ func (d *MDNSDiscoverer) processEntry(entry *zeroconf.ServiceEntry) {
 	}
 
 	device := config.Device{
-		Name:   entry.ServiceInstanceName(),
+		Name:   entry.Instance,
 		IP:     ip,
 		Status: status,
 	}
