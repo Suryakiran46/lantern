@@ -61,7 +61,9 @@ func handleConn(s *Server, conn net.Conn) {
 		Type: config.PeerConnected,
 		Peer: ip,
 	}
-	go readLoop(s, conn, ip)
+	pongChan := make(chan struct{}, 1)
+	go readLoop(s, conn, ip, pongChan)
+	//go StartKeepalive(func(msg config.Message) error, )
 }
 
 func (s *Server) Send(to string, msg config.Message) error {

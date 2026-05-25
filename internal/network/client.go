@@ -24,11 +24,12 @@ func (s *Server) Connect(ip string) error {
 		Peer: ip,
 	}
 
-	go readLoop(s, conn, ip)
+	pongChan := make(chan struct{}, 1)
+	go readLoop(s, conn, ip, pongChan)
 	return nil
 }
 
-func readLoop(s *Server, conn net.Conn, ip string) {
+func readLoop(s *Server, conn net.Conn, ip string, pongChan chan struct{}) {
 	defer func() {
 		s.mu.Lock()
 		delete(s.connections, ip)
@@ -53,6 +54,10 @@ func readLoop(s *Server, conn net.Conn, ip string) {
 			})
 			continue
 		} else if msg.Type == "pong" {
+			select {
+			case pongChan <- struct{}{}:
+			default:
+			}
 			continue
 		}
 
