@@ -1,4 +1,6 @@
 package discovery
+<<<<<<< HEAD
+=======
 
 import (
 	"context"
@@ -206,3 +208,4 @@ func (d *MDNSDiscoverer) resolveNameCollision(name string) string {
 	}
 	return name
 }
+>>>>>>> origin/feat/discovery

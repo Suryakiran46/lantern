@@ -14,6 +14,18 @@ type AppConfig struct {
 	Status      string `json:"status"`
 }
 
+type PeerEventType int
+
+const (
+	PeerConnected PeerEventType = iota
+	PeerDisconnected
+)
+
+type PeerEvent struct {
+	Type PeerEventType
+	Peer string
+}
+
 type Device struct {
 	Name      string
 	IP        string
@@ -41,6 +53,16 @@ type Discoverer interface {
 	UpdateStatus(status string)
 	DeviceChan() <-chan DeviceEvent
 	AddGossipPeer(ip string)
+}
+
+type Messenger interface {
+	Listen() error
+	Connect(ip string) error
+	Send(to string, msg Message) error
+	Broadcast(msg Message) error
+	MessageChan() <-chan Message
+	PeerChan() <-chan PeerEvent
+	Close()
 }
 
 type Message struct {
