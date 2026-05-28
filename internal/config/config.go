@@ -1,11 +1,13 @@
 package config
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 )
 
 type AppConfig struct {
@@ -119,9 +121,18 @@ func Load() (AppConfig, error) {
 	path := filepath.Join(ConfigDir(), "config.json")
 	data, err := os.ReadFile(path)
 	if os.IsNotExist(err) {
-		fmt.Println("Enter your display name: ")
+		scanner := bufio.NewScanner(os.Stdin)
 		var name string
-		_, err = fmt.Scan(&name)
+		for {
+			fmt.Print("Enter your display name: ")
+			if scanner.Scan() {
+				name = strings.TrimSpace(scanner.Text())
+				if name != "" {
+					break
+				}
+			}
+			fmt.Println("Display name cannot be empty. Please try again.")
+		}
 		cfg = AppConfig{
 			DisplayName: name,
 			Port:        5000,
