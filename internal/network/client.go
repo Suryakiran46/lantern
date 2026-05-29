@@ -9,6 +9,12 @@ import (
 )
 
 func (s *Server) Connect(ip string) error {
+	s.mu.RLock()
+	existing := s.connections[ip]
+	s.mu.RUnlock()
+	if existing != nil {
+		return nil
+	}
 	address := net.JoinHostPort(ip, fmt.Sprintf("%d", s.port))
 	conn, err := net.Dial("tcp", address)
 	if err != nil {
