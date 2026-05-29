@@ -35,25 +35,17 @@ type DeviceListModel struct {
 	// The parent model reads this flag and switches to the chat screen.
 	selectedForChat bool
 	selectedDevice  config.Device
+	myIP string
 }
 
 // NewDeviceListModel creates the device list sub-model.
 // It pre-populates with dummy devices so the TUI works before
 // mDNS layer is wired in. On Day 7 swap to real DeviceEvents.
-func NewDeviceListModel(myName string) DeviceListModel {
+func NewDeviceListModel(myName string, myIP string) DeviceListModel {
 	return DeviceListModel{
 		myName:  myName,
-		devices: dummyDevices(), // <== two lines change later (i hope)
-	}
-}
-
-// dummyDevices returns hardcoded test date
-// Replace with real channel data later (again i hope T-T)
-func dummyDevices() []config.Device {
-	return []config.Device{
-		{Name: "Suryaaaa", IP: "192.168.41.122", Status: "Active", Known: true},
-		{Name: "nsha256", IP: "192.168.41.123", Status: "Away", Known: false},
-		{Name: "Soumya Chechi", IP: "192.168.41.124", Status: "Active", Known: true},
+		devices: []config.Device{}, // <== two lines change later (i hope)
+		myIP: myIP,
 	}
 }
 
@@ -162,7 +154,11 @@ func (m DeviceListModel) View() string {
 		//Status indicator
 		statusStr := statusLabel(d.Status)
 
-		row := fmt.Sprintf("  %-20s %-16s %-10s %s", d.Name, d.IP, statusStr, trust)
+		name := d.Name
+		if d.IP == m.myIP {
+			name = d.Name + " (You)"
+		}
+		row := fmt.Sprintf("  %-20s %-16s %-10s %s", name, d.IP, statusStr, trust)
 
 		if i == m.cursor {
 			sb.WriteString(styleSelected.Render(row))
@@ -174,7 +170,7 @@ func (m DeviceListModel) View() string {
 
 	//Footer/keybinds
 	sb.WriteString("\n")
-	sb.WriteString(styleSubtle.Render("up/down to navigate,   Enter open chat,   q to quit"))
+	sb.WriteString(styleSubtle.Render("up/down to navigate,   Enter open chat,   Ctrl+C or q to quit"))
 
 	return sb.String()
 }

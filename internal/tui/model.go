@@ -23,19 +23,22 @@ type Model struct {
 
 	deviceChan <-chan config.DeviceEvent
 	msgChan    <-chan config.Message
+	messenger config.Messenger
 
 	width  int
 	height int
 }
 
-func NewModel(cfg config.AppConfig, deviceChan <-chan config.DeviceEvent, msgChan <-chan config.Message) Model {
+func NewModel(cfg config.AppConfig, deviceChan <-chan config.DeviceEvent, msgChan <-chan config.Message, messenger config.Messenger,localIP string) Model {
 	return Model{
 		cfg:           cfg,
 		currentScreen: screenDevices,
-		deviceList:    NewDeviceListModel(cfg.DisplayName),
+		deviceList:    NewDeviceListModel(cfg.DisplayName, localIP),
 		deviceChan:    deviceChan,
 		msgChan:       msgChan,
+		messenger:     messenger,
 	}
+
 }
 
 type deviceEventMsg config.DeviceEvent
@@ -92,10 +95,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "ctrl+c", "q":
+		case "ctrl+c":
 			return m, tea.Quit
+		case "q":
+			if m.currentScreen == screenDevices {
+				return m, tea.Quit
+			}
 		}
-
+		
 		switch m.currentScreen {
 
 		case screenDevices:
@@ -104,7 +111,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.deviceList.SelectedForChat() {
 				peer := m.deviceList.SelectedDevice()
 				m.deviceList.ClearSelection()
-				m.chat = NewChatModel(m.cfg.DisplayName, peer)
+				if(m.messenger!=nil){
+					m.messenger.Connect(peer.IP)
+				}
+				m.chat = NewChatModel(m.cfg.DisplayName, peer,m.messenger)
 				m.chat.SetSize(m.width, m.height)
 				m.currentScreen = screenChat
 			}

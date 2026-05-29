@@ -56,10 +56,13 @@ type ChatModel struct {
 
 	//backToDevices signals the parent to switch back to the device list
 	backToDevices bool
+
+	messenger config.Messenger
+	peerIP    string
 }
 
 //NewChatModel creates a chat sub model for the given peer
-func NewChatModel(myName string, peer config.Device) ChatModel {
+func NewChatModel(myName string, peer config.Device, messenger config.Messenger) ChatModel {
 	//input bar setup
 	ti := textinput.New()
 	ti.Placeholder = fmt.Sprintf("Message %s...", peer.Name)
@@ -71,6 +74,8 @@ func NewChatModel(myName string, peer config.Device) ChatModel {
 		myName:   myName,
 		messages: dummyMessages(myName, peer.Name),
 		input:    ti,
+		messenger: messenger,
+		peerIP: peer.IP,
 	}
 	return m
 }
@@ -170,7 +175,14 @@ func (m ChatModel) Update(msg tea.Msg) (ChatModel, tea.Cmd) {
 			m.viewport.SetContent(m.renderMessages())
 			m.viewport.GotoBottom()
 
-			// TODO: call messenger.Send(peer.IP, config.Message{...}) here
+			if m.messenger != nil {
+				m.messenger.Send(m.peerIP, config.Message{
+					Type: "chat",
+					From: m.myName,
+					Text: text,
+					Ts:   time.Now().Unix(),
+				})
+			}
 
 		default:
 			//all other keys go to the input bar
@@ -226,7 +238,7 @@ func (m ChatModel) View() string {
 
 	//Footer hints
 	sb.WriteString("\n")
-	sb.WriteString(styleChatSubtle.Render("enter =  send,   esc = back to devices,   q = quit"))
+	sb.WriteString(styleChatSubtle.Render("enter =  send,   esc = back to devices,   Ctrl + C = quit"))
 
 	return sb.String()
 }

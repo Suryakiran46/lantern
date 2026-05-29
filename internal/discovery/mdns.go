@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"sync"
+	"net"
 
 	"github.com/Suryakiran46/lantern/internal/config"
 	"github.com/grandcat/zeroconf"
@@ -22,6 +23,7 @@ type MDNSDiscoverer struct {
 	deviceCh chan config.DeviceEvent
 	stopCh   chan struct{}
 	server   *zeroconf.Server
+	localIP	string
 }
 
 func NewDiscoverer(cfg config.AppConfig) *MDNSDiscoverer {
@@ -76,6 +78,7 @@ func (d *MDNSDiscoverer) register() error {
 	name := d.cfg.DisplayName
 	port := d.cfg.Port
 	status := d.cfg.Status
+	d.localIP = getLocalIP()
 	d.mu.Unlock()
 
 	name = d.resolveNameCollision(name)
@@ -205,4 +208,19 @@ func (d *MDNSDiscoverer) resolveNameCollision(name string) string {
 		}
 	}
 	return name
+}
+
+func getLocalIP() string {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err !=nil{
+		return "127.0.0.1"
+	}
+	defer conn.Close()
+	return conn.LocalAddr().(*net.UDPAddr).IP.String()
+}
+
+func (d *MDNSDiscoverer) LocalIP() string {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.localIP
 }
