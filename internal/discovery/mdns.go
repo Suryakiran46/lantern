@@ -156,6 +156,27 @@ func (d *MDNSDiscoverer) processEntry(entry *zeroconf.ServiceEntry) {
 
 	// skip if no IPv4 address
 	if len(entry.AddrIPv4) == 0 {
+		d.mu.Lock()
+    	var offlineDevice config.Device
+		var found bool
+		for _, device := range d.devices {
+			if device.Name == entry.Instance {
+				offlineDevice = device
+				found = true
+				break
+			}
+		}
+		if found {
+			delete(d.devices, offlineDevice.IP)
+		}
+		d.mu.Unlock()
+		if found {
+			d.deviceCh <- config.DeviceEvent{
+				Type:   config.DeviceLeft,
+				Device: offlineDevice,
+			}
+			log.Printf("mDNS: %q went offline", offlineDevice.Name)
+		}
 		return
 	}
 	ip := entry.AddrIPv4[0].String()
