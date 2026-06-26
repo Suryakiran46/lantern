@@ -1,12 +1,2 @@
-#Virtual Environment
-venv/
-
-#User Data
-config.json
-
-#Python Cache files
-__pycache__/
-
-#Editable/development install artifacts
-lantern.egg-info/
-lanshare.egg-infocmd/
+lantern
+lantern.exe
